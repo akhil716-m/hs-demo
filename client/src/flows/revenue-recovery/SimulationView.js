@@ -271,11 +271,11 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     const isHard = scenario === 'hard_decline';
     const isCardSwitch = scenario === 'card_switching';
     const isAcctUpdate = scenario === 'account_update';
-    // card_switching: 2 fails on card 1, switch, 1 success on card 2
-    // account_update: 1 fail (card expired), account updater runs, 1 success on new card
-    // hard: 1 fail → classify → pause → user enables budget toggle → 2 more retries → succeed
-    // soft: 1 fail, 1 success
-    const INT_TOTAL = isCardSwitch ? 3 : isHard ? 3 : 2;
+    const isPartialAuth = scenario === 'partial_auth';
+    // partial_auth schedule: retries 1,2,4 fail; 3→$15, 5→$20, 6→$14 (completes $49)
+    const PARTIAL_SCHEDULE = isPartialAuth ? { 3: 15, 5: 20, 6: 14 } : {};
+    let recoveredSoFar = 0;
+    const INT_TOTAL = isCardSwitch ? 3 : isHard ? 3 : isPartialAuth ? 6 : 2;
 
     for (let i = 1; i <= INT_TOTAL; i++) {
       const date = futureDate(i * 2);
@@ -302,12 +302,30 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
       setActive('proc');
       if ((await tick(650)) === 'cancelled') return;
 
-      // card switching: retries 1 & 2 fail, retry 3 succeeds (after card switch)
-      // account update: retry 1 fails (expired), retry 2 succeeds (new card)
-      // hard: retries 1 & 2 fail, retry 3 succeeds (after budget toggle enabled)
-      const succeeded = isCardSwitch ? i === 3 : (isHard ? i === 3 : i === INT_TOTAL);
+      const isPartialResult = isPartialAuth && PARTIAL_SCHEDULE[i] !== undefined;
+      const succeeded = isCardSwitch ? i === 3 : (isHard ? i === 3 : (!isPartialAuth && i === INT_TOTAL));
 
-      if (!succeeded) {
+      if (isPartialResult) {
+        // Partial authorization: processor approves a slice of the invoice amount
+        const partialAmt = PARTIAL_SCHEDULE[i];
+        recoveredSoFar += partialAmt;
+        const isLastPartial = recoveredSoFar >= 49;
+        setProcTone(isLastPartial ? 'success' : 'captured');
+        setProcStatus(`Partial auth \u00B7 $${partialAmt} authorized`);
+        await flyChip('cPR', false, '#0891B2', `partial $${partialAmt}`);
+        if (cancelRef.current) return;
+        addLog('Processor \u2192 Recovery', `partial.authorized \u00B7 $${partialAmt} of ${INVOICE_AMOUNT}`, 'partial', 'captured');
+        patchInternal(idx, { status: `$${partialAmt} partial`, sub: `Captured ${date}`, tone: 'captured', amount: `$${partialAmt}` });
+        setActive('rec');
+        if (isLastPartial) {
+          setInvoiceTone('recovered');
+          setInvoiceStatus('Recovered');
+        } else {
+          setInvoiceTone('captured');
+          setInvoiceStatus(`$${recoveredSoFar} / ${INVOICE_AMOUNT}`);
+        }
+        if ((await tick(400)) === 'cancelled') return;
+      } else if (!succeeded) {
         setProcTone('failed');
         setProcStatus(`Declined \u00B7 attempt #${i}`);
         await flyChip('cPR', false, '#EF4444', 'failed');
@@ -440,6 +458,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
               { id: 'soft_decline', label: 'Soft Decline' },
               { id: 'card_switching', label: 'Card Switching' },
               { id: 'account_update', label: 'Account Update' },
+              { id: 'partial_auth', label: 'Partial Auth' },
               { id: 'hard_decline', label: 'Hard Decline' },
             ].map(t => {
               const active = scenario === t.id;
