@@ -9,6 +9,8 @@ import { formatTime, futureDate, formatConnectorName } from './simulationData';
 
 const INVOICE_ID = 'INV-2024-0001';
 const INVOICE_AMOUNT = '$49.00';
+const BUDGET_TOTAL = 1000;
+const RETRY_COST = 10;
 
 const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [phase, setPhase] = useState('idle');
@@ -32,6 +34,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [expiredRevealed, setExpiredRevealed] = useState(false);
   const [retryHardDeclines, setRetryHardDeclines] = useState(false);
   const retryHardDeclinesRef = useRef(false);
+  const [budgetBalance, setBudgetBalance] = useState(BUDGET_TOTAL);
 
   const cardRef = useRef(null);
   const headerRef = useRef(null);
@@ -203,7 +206,9 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setActiveCardIndex(0);
     setAccountUpdated(false);
     setExpiredRevealed(false);
-    retryHardDeclinesRef.current = retryHardDeclines;
+    setRetryHardDeclines(false);
+    retryHardDeclinesRef.current = false;
+    setBudgetBalance(BUDGET_TOTAL);
     setBanner('Flow in progress\u2026');
 
     if ((await tick(300)) === 'cancelled') return;
@@ -266,12 +271,11 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     const isHard = scenario === 'hard_decline';
     const isCardSwitch = scenario === 'card_switching';
     const isAcctUpdate = scenario === 'account_update';
-    const hardBudgetOn = retryHardDeclinesRef.current;
     // card_switching: 2 fails on card 1, switch, 1 success on card 2
     // account_update: 1 fail (card expired), account updater runs, 1 success on new card
-    // hard + budget off: 1 fail → stop; hard + budget on: 1 fail → classify → 2 more retries → succeed
+    // hard: 1 fail → classify → pause → user enables budget toggle → 2 more retries → succeed
     // soft: 1 fail, 1 success
-    const INT_TOTAL = isCardSwitch ? 3 : (isHard ? (hardBudgetOn ? 3 : 1) : 2);
+    const INT_TOTAL = isCardSwitch ? 3 : isHard ? 3 : 2;
 
     for (let i = 1; i <= INT_TOTAL; i++) {
       const date = futureDate(i * 2);
@@ -291,6 +295,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
       patchInternal(idx, { status: 'Processing', tone: 'processing' });
       setProcTone('processing');
       setProcStatus(`Recovery retry #${i}\u2026`);
+      if (isHard) setBudgetBalance(b => Math.max(0, b - RETRY_COST));
       await flyChip('cPR', true, '#0066FF', `recovery retry #${i}`);
       if (cancelRef.current) return;
       addLog('Recovery \u2192 Processor', `recovery retry #${i}`, 'retrying', 'listen');
@@ -299,8 +304,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
 
       // card switching: retries 1 & 2 fail, retry 3 succeeds (after card switch)
       // account update: retry 1 fails (expired), retry 2 succeeds (new card)
-      // hard + budget on: retries 1 & 2 fail, retry 3 succeeds
-      const succeeded = isCardSwitch ? i === 3 : (isHard ? (hardBudgetOn && i === 3) : i === INT_TOTAL);
+      // hard: retries 1 & 2 fail, retry 3 succeeds (after budget toggle enabled)
+      const succeeded = isCardSwitch ? i === 3 : (isHard ? i === 3 : i === INT_TOTAL);
 
       if (!succeeded) {
         setProcTone('failed');
@@ -320,16 +325,15 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
           if ((await tick(500)) === 'cancelled') return;
 
           if (isHard) {
-            if (!hardBudgetOn) {
-              addLog('Recovery \u00B7 safeguard', '\u26D4 Hard decline \u00B7 retry paused \u00B7 enable retry budget to continue', 'halted', 'failed');
-              setInvoiceTone('failed');
-              setInvoiceStatus('Paused');
-              setPhase('done');
-              setBanner('\u26D4 Hard decline detected \u00B7 retry budget is OFF \u00B7 enable \u201CRetry Hard Declines\u201D to continue.');
-              return;
+            setInvoiceTone('failed');
+            setInvoiceStatus('Paused');
+            addLog('Recovery \u00B7 safeguard', '\u23F8 Hard decline \u00B7 retry paused \u00B7 enable \u201CRetry Hard Declines\u201D budget to continue', 'halted', 'failed');
+            while (!retryHardDeclinesRef.current) {
+              if (cancelRef.current) return;
+              await tick(300);
             }
-            addLog('Recovery \u00B7 safeguard', '\u26A0 Hard decline \u00B7 retry budget enabled \u00B7 card network penalty risk acknowledged', 'classified', 'scheduled');
-            if ((await tick(600)) === 'cancelled') return;
+            addLog('Recovery \u00B7 safeguard', '\u26A0 Retry budget enabled \u00B7 network penalty risk acknowledged \u00B7 proceeding\u2026', 'classified', 'scheduled');
+            if ((await tick(500)) === 'cancelled') return;
           }
 
           // Account Update: run Juspay account updater to find new card
@@ -376,7 +380,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setInvoiceStatus('Recovered');
     setPhase('done');
     setBanner(`\u2713 Recovered ${INVOICE_AMOUNT} \u00B7 ${EXT_TOTAL} external + ${INT_TOTAL} internal retries.`);
-  }, [flyChip, addLog, pushExternal, pushInternal, patchInternal, scenario, retryHardDeclines]);
+  }, [flyChip, addLog, pushExternal, pushInternal, patchInternal, scenario]);
 
   const onStart = () => {
     if (phase !== 'running') run();
@@ -385,6 +389,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const paymentName = formatConnectorName(paymentConfig?.processor) || 'Stripe';
   const billingName = formatConnectorName(billingConfig?.processor) || 'Chargebee';
 
+  const toggleEnabled = scenario === 'hard_decline' && declineType === 'hard' && phase === 'running';
   const btnLabel = phase === 'running' ? 'Running\u2026' : phase === 'done' ? 'Replay flow' : '\u25B6  Start';
   const btnBg = phase === 'running' ? '#9bb6e6' : '#0066FF';
   const btnCursor = phase === 'running' ? 'default' : 'pointer';
@@ -461,29 +466,37 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
             })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {/* Retry Hard Declines toggle — visible only for hard_decline scenario */}
+            {/* Retry Hard Declines toggle + budget wallet — visible only for hard_decline scenario */}
             {scenario === 'hard_decline' && (
               <div
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
+                  display: 'flex', alignItems: 'center', gap: 8,
                   padding: '5px 10px', borderRadius: 8,
                   background: retryHardDeclines ? '#fff8f0' : '#fef2f2',
                   border: `1px solid ${retryHardDeclines ? '#FDBA74' : '#FECACA'}`,
+                  opacity: toggleEnabled ? 1 : 0.55,
+                  transition: 'opacity 0.3s',
                 }}
               >
+                {/* Budget wallet */}
+                <span style={{ fontSize: '11.5px', fontWeight: 800, color: budgetBalance < BUDGET_TOTAL ? '#C2410C' : '#1a1f36', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                  ${budgetBalance.toLocaleString()}
+                </span>
+                <div style={{ width: 1, height: 14, background: retryHardDeclines ? '#FDBA74' : '#FECACA', flexShrink: 0 }} />
                 <span style={{ fontSize: '11px', fontWeight: 600, color: retryHardDeclines ? '#C2410C' : '#B91C1C', whiteSpace: 'nowrap' }}>
                   Retry Hard Declines
                 </span>
                 <div
                   onClick={() => {
-                    if (phase === 'running') return;
+                    if (!toggleEnabled) return;
                     setRetryHardDeclines(v => {
                       retryHardDeclinesRef.current = !v;
                       return !v;
                     });
                   }}
                   style={{
-                    width: 30, height: 16, borderRadius: 8, cursor: phase === 'running' ? 'default' : 'pointer',
+                    width: 30, height: 16, borderRadius: 8,
+                    cursor: toggleEnabled ? 'pointer' : 'not-allowed',
                     background: retryHardDeclines ? '#F97316' : '#d1d5db',
                     position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                   }}
