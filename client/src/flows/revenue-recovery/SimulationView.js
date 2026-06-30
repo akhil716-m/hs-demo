@@ -22,6 +22,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [internal, setInternal] = useState([]);
   const [log, setLog] = useState([]);
   const [banner, setBanner] = useState('Press Start to play the full bi-directional flow.');
+  const [scenario, setScenario] = useState('soft_decline');
 
   const cardRef = useRef(null);
   const headerRef = useRef(null);
@@ -359,37 +360,52 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
         </button>
       </div>
 
-      {/* Sub-row: badges + banner + legend — outside card */}
-      <div ref={controlBarRef} className="flex items-center justify-between" style={{ flexShrink: 0 }}>
-        <div className="flex items-center gap-2 flex-wrap">
-          {[
-            { label: 'Payment', name: paymentName },
-            { label: 'Billing', name: billingName },
-          ].map(({ label, name }) => (
-            <span
-              key={label}
-              className="rounded-full"
-              style={{ background: '#f1f3f7', border: '1px solid #e5e7eb', padding: '4px 11px', fontSize: '11.5px', color: '#5e6573' }}
-            >
-              {label}: <b style={{ color: '#1a1f36' }}>{name}</b>{' '}
-              <span style={{ color: '#10B981' }}>&#10003;</span>
-            </span>
-          ))}
-          <span style={{ fontSize: '12px', color: '#9099a8', marginLeft: '6px' }}>{banner}</span>
-        </div>
-        <div className="flex items-center gap-2" style={{ fontSize: '11px', color: '#9099a8' }}>
-          <span style={{ width: 18, height: 5, borderRadius: '3px', background: '#e3e6ec', display: 'inline-block' }} />
-          <span>channel</span>
-          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#0066FF', display: 'inline-block', marginLeft: '6px' }} />
-          <span>message chip &middot; travels both ways</span>
-        </div>
-      </div>
-
-      {/* Canvas card */}
+      {/* Canvas card — includes scenario tabs at top */}
       <div
         className="bg-white rounded-2xl overflow-hidden flex flex-col"
         style={{ border: '1px solid #e5e7eb', boxShadow: '0 20px 40px -16px rgba(15,23,42,.12)', flex: 1, minHeight: 0 }}
       >
+        {/* Scenario tabs + badges row */}
+        <div ref={controlBarRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 12, padding: '10px 14px', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f7f8fa', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '4px' }}>
+{[
+              { id: 'soft_decline', label: 'Soft Decline' },
+              { id: 'card_switching', label: 'Card Switching' },
+              { id: 'account_update', label: 'Account Update' },
+              { id: 'hard_decline', label: 'Hard Decline' },
+            ].map(t => {
+              const active = scenario === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => { if (phase !== 'running') setScenario(t.id); }}
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: active ? 600 : 400,
+                    padding: '5px 13px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: active ? '#fff' : 'transparent',
+                    color: active ? '#0066FF' : '#5e6573',
+                    cursor: phase === 'running' ? 'default' : 'pointer',
+                    boxShadow: active ? '0 1px 4px rgba(0,0,0,.08)' : 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {[{ label: 'Payment', name: paymentName }, { label: 'Billing', name: billingName }].map(({ label, name }) => (
+              <span key={label} style={{ background: '#f1f3f7', border: '1px solid #e5e7eb', borderRadius: '999px', padding: '4px 11px', fontSize: '11.5px', color: '#5e6573' }}>
+                {label}: <b style={{ color: '#1a1f36' }}>{name}</b>{' '}
+                <span style={{ color: '#10B981' }}>&#10003;</span>
+              </span>
+            ))}
+          </div>
+        </div>
       {/* Body: stage (70%) + log (30%) */}
       <div className="flex flex-col lg:flex-row items-stretch overflow-hidden" style={{ flex: 1, minHeight: 0 }}>
         {/* Stage — 70% */}
