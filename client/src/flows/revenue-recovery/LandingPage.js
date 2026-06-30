@@ -34,11 +34,12 @@ const LandingPage = ({ onGetStarted }) => {
     <div style={{
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
       width: '100%', paddingTop: 16,
+      background: '#ffffff', minHeight: '100%',
     }}>
       <div style={{
         position: 'relative',
         width: '100%',
-        maxWidth: 560,
+        maxWidth: 680,
         height: visibleH || 'auto',
         overflow: 'hidden',
       }}>
