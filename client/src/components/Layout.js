@@ -31,7 +31,7 @@ const Layout = ({ children, onFlowSelect, currentFlow }) => {
   const isRR = currentFlow?.id === 'revenue_recovery_integrations';
 
   return (
-    <div className={`bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ${isRR ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
+    <div className={`${isRR ? 'bg-white' : 'bg-gray-50 dark:bg-gray-900'} transition-colors duration-200 ${isRR ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
       <Header onToggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
       <DebugModeBanner />
       <div className={`flex pt-16 ${isRR ? 'flex-1 overflow-hidden min-h-0' : ''}`}>
@@ -41,7 +41,7 @@ const Layout = ({ children, onFlowSelect, currentFlow }) => {
           isOpen={sidebarOpen}
           onClose={closeSidebar}
         />
-        <main className={`flex-1 p-4 sm:p-6 lg:p-8 ml-0 lg:ml-80 transition-[margin] duration-300 ${document.querySelector('[data-debug-banner]') ? 'pt-12' : ''} ${isRR ? 'flex flex-col overflow-hidden min-h-0' : ''}`}>
+        <main className={`flex-1 ${isRR ? 'p-0' : 'p-4 sm:p-6 lg:p-8'} ml-0 lg:ml-80 transition-[margin] duration-300 ${document.querySelector('[data-debug-banner]') ? 'pt-12' : ''} ${isRR ? 'flex flex-col overflow-hidden min-h-0' : ''}`}>
           {children}
         </main>
       </div>

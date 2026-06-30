@@ -27,8 +27,8 @@ const LandingPage = ({ onGetStarted }) => {
   // In the 3244px image, button is ~580px wide and ~100px tall
   // As % of rendered width: 580/3244 ≈ 17.9%, height: 100/3244 ≈ 3.1% of width
   const imgW = imgRef.current?.offsetWidth ?? 0;
-  const btnW = imgW * 0.18;
-  const btnH = imgW * 0.033;
+  const btnW = imgW * 0.28;
+  const btnH = imgW * 0.06;
 
   return (
     <div style={{
