@@ -35,29 +35,53 @@ const ComponentCard = ({ title, provider, iconType, status, tone, isActive, posi
       </div>
 
       {invoiceDetails && (
-        <div style={{ marginTop: '10px', borderTop: '1px solid #f0f2f5', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {/* Invoice row */}
+        <div style={{ marginTop: '10px', borderTop: '1px solid #f0f2f5', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Invoice ID + amount */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '10px', color: '#9099a8' }}>{invoiceDetails.id}</span>
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#1a1f36' }}>{invoiceDetails.amount}</span>
           </div>
-          {/* Card row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{
-              width: 24, height: 15, borderRadius: 2,
-              background: 'linear-gradient(135deg, #1a1f8c, #3b5bdb)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <span style={{ fontSize: '6px', fontWeight: 900, color: '#fff', letterSpacing: '0.3px' }}>VISA</span>
+          {/* Cards */}
+          {(invoiceDetails.cards || []).map((card, i) => {
+            const isActive = i === (invoiceDetails.activeCard ?? 0);
+            const netBg = card.network === 'MC'
+              ? 'linear-gradient(135deg, #c0392b, #e67e22)'
+              : 'linear-gradient(135deg, #1a1f8c, #3b5bdb)';
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 7px', borderRadius: 6,
+                background: isActive ? '#f0f6ff' : '#f7f8fa',
+                border: `1px solid ${isActive ? '#c5d9f8' : '#e5e7eb'}`,
+                opacity: isActive ? 1 : 0.55,
+                transition: 'all 0.4s ease',
+              }}>
+                <div style={{
+                  width: 24, height: 15, borderRadius: 2, background: netBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <span style={{ fontSize: '6px', fontWeight: 900, color: '#fff', letterSpacing: '0.3px' }}>{card.network}</span>
+                </div>
+                <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1a1f36' }}>•••• {card.last4}</span>
+                <span style={{ fontSize: '10px', color: '#9099a8' }}>Exp {card.expiry}</span>
+                <span style={{
+                  marginLeft: 'auto', fontSize: '9px', fontWeight: 700, padding: '1px 6px',
+                  borderRadius: 4, letterSpacing: '0.04em',
+                  background: isActive ? '#0066FF' : '#e5e7eb',
+                  color: isActive ? '#fff' : '#9099a8',
+                }}>
+                  {isActive ? 'ACTIVE' : 'BACKUP'}
+                </span>
+              </div>
+            );
+          })}
+          {/* Account + email (from first card) */}
+          {invoiceDetails.cards?.[0]?.account && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '10px', color: '#9099a8' }}>{invoiceDetails.cards[0].account}</span>
+              <span style={{ fontSize: '10px', color: '#9099a8' }}>{invoiceDetails.cards[0].email}</span>
             </div>
-            <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1a1f36' }}>•••• 4242</span>
-            <span style={{ fontSize: '10px', color: '#9099a8', marginLeft: 'auto' }}>Exp 12/26</span>
-          </div>
-          {/* Account + email */}
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '10px', color: '#9099a8' }}>cus_Np8x42</span>
-            <span style={{ fontSize: '10px', color: '#9099a8' }}>john.doe@acme.io</span>
-          </div>
+          )}
         </div>
       )}
     </div>

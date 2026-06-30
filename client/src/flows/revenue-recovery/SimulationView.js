@@ -27,6 +27,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [cprMuted, setCprMuted] = useState(true);
   const [escalated, setEscalated] = useState(false);
   const [declineType, setDeclineType] = useState(null);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
 
   const cardRef = useRef(null);
   const headerRef = useRef(null);
@@ -195,6 +196,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setCprMuted(true);
     setEscalated(false);
     setDeclineType(null);
+    setActiveCardIndex(0);
     setBanner('Flow in progress\u2026');
 
     if ((await tick(300)) === 'cancelled') return;
@@ -253,9 +255,13 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setActive('rec');
     if ((await tick(400)) === 'cancelled') return;
 
-    // 4 — Revenue Recovery: first attempt reveals decline type
+    // 4 — Revenue Recovery internal retries (scenario-aware)
     const isHard = scenario === 'hard_decline';
-    const INT_TOTAL = isHard ? 1 : 2;
+    const isCardSwitch = scenario === 'card_switching';
+    // card_switching: 2 fails on card 1, switch, 1 success on card 2
+    // hard: 1 fail, stop
+    // soft/others: 1 fail, 1 success
+    const INT_TOTAL = isCardSwitch ? 3 : isHard ? 1 : 2;
 
     for (let i = 1; i <= INT_TOTAL; i++) {
       const date = futureDate(i * 2);
@@ -281,7 +287,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
       setActive('proc');
       if ((await tick(650)) === 'cancelled') return;
 
-      const succeeded = !isHard && i === INT_TOTAL;
+      // card switching: retries 1 & 2 fail, retry 3 succeeds (after card switch)
+      const succeeded = isCardSwitch ? i === 3 : (!isHard && i === INT_TOTAL);
 
       if (!succeeded) {
         setProcTone('failed');
@@ -299,7 +306,6 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
           setDeclineType(dtype);
           addLog('Recovery \u00B7 analysis', `Classified as ${isHard ? 'Hard' : 'Soft'} Decline`, 'classified', isHard ? 'failed' : 'scheduled');
           if ((await tick(400)) === 'cancelled') return;
-
           if (isHard) {
             setInvoiceTone('failed');
             setInvoiceStatus('Unrecoverable');
@@ -308,12 +314,22 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
             return;
           }
         }
+
+        // Card switching: after 2 fails, switch to backup card
+        if (isCardSwitch && i === 2) {
+          if ((await tick(300)) === 'cancelled') return;
+          setActiveCardIndex(1);
+          addLog('Recovery \u00B7 card switch', 'Switching to backup card \u2022\u2022\u2022\u2022 8888 (Mastercard)', 'switching', 'scheduled');
+          setBillStatus('Card switched \u00B7 retrying\u2026');
+          if ((await tick(600)) === 'cancelled') return;
+        }
       } else {
+        const cardLabel = isCardSwitch ? 'Mastercard \u2022\u2022\u2022\u2022 8888' : 'primary card';
         setProcTone('success');
         setProcStatus('Payment succeeded \u2713');
         await flyChip('cPR', false, '#10B981', 'succeeded');
         if (cancelRef.current) return;
-        addLog('Processor \u2192 Recovery', 'payment.succeeded webhook', 'recovered', 'success');
+        addLog('Processor \u2192 Recovery', `payment.succeeded \u00B7 ${cardLabel}`, 'recovered', 'success');
         patchInternal(idx, { status: 'Succeeded', sub: `Captured ${date}`, tone: 'success' });
         setActive('rec');
         if ((await tick(450)) === 'cancelled') return;
@@ -484,7 +500,17 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
               tone={billTone}
               isActive={active === 'bill'}
               position={{ left: 50, top: 44, width: 275 }}
-              invoiceDetails={{ id: INVOICE_ID, amount: INVOICE_AMOUNT }}
+              invoiceDetails={{
+                id: INVOICE_ID,
+                amount: INVOICE_AMOUNT,
+                cards: scenario === 'card_switching'
+                  ? [
+                      { network: 'VISA', last4: '4242', expiry: '12/26', account: 'cus_Np8x42', email: 'john.doe@acme.io' },
+                      { network: 'MC',   last4: '8888', expiry: '09/27' },
+                    ]
+                  : [{ network: 'VISA', last4: '4242', expiry: '12/26', account: 'cus_Np8x42', email: 'john.doe@acme.io' }],
+                activeCard: activeCardIndex,
+              }}
             />
 
             {/* Processor card */}
