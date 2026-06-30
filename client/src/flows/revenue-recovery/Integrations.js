@@ -2,17 +2,22 @@ import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import OnboardingWizard from './onboarding/OnboardingWizard';
 import SimulationView from './SimulationView';
+import LandingPage from './LandingPage';
 
 const Integrations = () => {
   const [paymentConfig, setPaymentConfig] = useState(null);
   const [billingConfig, setBillingConfig] = useState(null);
-  const [viewMode, setViewMode] = useState('setup');
+  const [viewMode, setViewMode] = useState('landing');
 
   const handleComplete = (payment, billing) => {
     setPaymentConfig(payment);
     setBillingConfig(billing);
     setViewMode('simulation');
   };
+
+  if (viewMode === 'landing') {
+    return <LandingPage onGetStarted={() => setViewMode('setup')} />;
+  }
 
   if (viewMode === 'setup') {
     return <OnboardingWizard onComplete={handleComplete} />;
