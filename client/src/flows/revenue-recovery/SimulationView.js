@@ -326,91 +326,58 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const btnCursor = phase === 'running' ? 'default' : 'pointer';
 
   return (
-    <div
-      ref={cardRef}
-      className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden flex flex-col"
-      style={{
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 20px 40px -16px rgba(15,23,42,.12)',
-        flex: 1,
-        minHeight: 0,
-      }}
-    >
-      {/* Header */}
-      <div
-        ref={headerRef}
-        className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-700"
-        style={{ padding: '16px 24px', flexShrink: 0 }}
-      >
-        <div
-          className="flex items-center justify-center text-white font-extrabold"
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #0066FF, #0052CC)',
-            fontSize: '15px',
-          }}
-        >
-          H
-        </div>
+    <div ref={cardRef} className="flex flex-col" style={{ flex: 1, minHeight: 0, gap: '12px' }}>
+
+      {/* Header row — outside card */}
+      <div ref={headerRef} className="flex items-center justify-between" style={{ flexShrink: 0 }}>
         <div>
-          <div className="font-bold text-gray-900 dark:text-white" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>
+          <div className="font-bold" style={{ fontSize: '17px', color: '#1a1f36', letterSpacing: '-0.01em' }}>
             Revenue Recovery &mdash; Component Communication
           </div>
-          <div className="text-gray-400 dark:text-gray-500" style={{ fontSize: '12px' }}>
+          <div style={{ fontSize: '12.5px', color: '#9099a8', marginTop: '3px' }}>
             Messages travel as chips across two-way channels &middot; Recovery keeps the invoice ledger
           </div>
         </div>
-        <div className="flex gap-2 ml-auto" style={{ fontSize: '11.5px' }}>
-          <span
-            className="border rounded-full"
-            style={{ background: '#f1f3f7', border: '1px solid #e5e7eb', padding: '5px 11px', color: '#5e6573' }}
-          >
-            Payment: <b className="text-gray-900 dark:text-white">{paymentName}</b>{' '}
-            <span style={{ color: '#10B981' }}>&#10003;</span>
-          </span>
-          <span
-            className="border rounded-full"
-            style={{ background: '#f1f3f7', border: '1px solid #e5e7eb', padding: '5px 11px', color: '#5e6573' }}
-          >
-            Billing: <b className="text-gray-900 dark:text-white">{billingName}</b>{' '}
-            <span style={{ color: '#10B981' }}>&#10003;</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Control bar */}
-      <div
-        ref={controlBarRef}
-        className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-700 dark:bg-gray-900/50"
-        style={{ padding: '14px 24px', background: '#fafbfc', flexShrink: 0 }}
-      >
         <button
           onClick={onStart}
           disabled={phase === 'running'}
-          className="text-white font-semibold"
+          className="text-white font-semibold flex items-center gap-1.5"
           style={{
             fontSize: '13px',
             background: btnBg,
             border: 'none',
             borderRadius: '9px',
-            padding: '10px 18px',
+            padding: '10px 20px',
             cursor: btnCursor,
             boxShadow: '0 2px 8px rgba(0,102,255,.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
+            flexShrink: 0,
           }}
         >
           {phase !== 'running' && phase !== 'done' && <Play size={14} />}
           {phase === 'done' && <RotateCcw size={14} />}
           {btnLabel}
         </button>
-        <div className="text-gray-500 dark:text-gray-400 font-medium" style={{ fontSize: '12.5px' }}>
-          {banner}
+      </div>
+
+      {/* Sub-row: badges + banner + legend — outside card */}
+      <div ref={controlBarRef} className="flex items-center justify-between" style={{ flexShrink: 0 }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          {[
+            { label: 'Payment', name: paymentName },
+            { label: 'Billing', name: billingName },
+          ].map(({ label, name }) => (
+            <span
+              key={label}
+              className="rounded-full"
+              style={{ background: '#f1f3f7', border: '1px solid #e5e7eb', padding: '4px 11px', fontSize: '11.5px', color: '#5e6573' }}
+            >
+              {label}: <b style={{ color: '#1a1f36' }}>{name}</b>{' '}
+              <span style={{ color: '#10B981' }}>&#10003;</span>
+            </span>
+          ))}
+          <span style={{ fontSize: '12px', color: '#9099a8', marginLeft: '6px' }}>{banner}</span>
         </div>
-        <div className="flex items-center gap-2 ml-auto text-gray-400 dark:text-gray-500" style={{ fontSize: '11px' }}>
+        <div className="flex items-center gap-2" style={{ fontSize: '11px', color: '#9099a8' }}>
           <span style={{ width: 18, height: 5, borderRadius: '3px', background: '#e3e6ec', display: 'inline-block' }} />
           <span>channel</span>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#0066FF', display: 'inline-block', marginLeft: '6px' }} />
@@ -418,6 +385,11 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
         </div>
       </div>
 
+      {/* Canvas card */}
+      <div
+        className="bg-white rounded-2xl overflow-hidden flex flex-col"
+        style={{ border: '1px solid #e5e7eb', boxShadow: '0 20px 40px -16px rgba(15,23,42,.12)', flex: 1, minHeight: 0 }}
+      >
       {/* Body: stage (70%) + log (30%) */}
       <div className="flex flex-col lg:flex-row items-stretch overflow-hidden" style={{ flex: 1, minHeight: 0 }}>
         {/* Stage — 70% */}
@@ -507,6 +479,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
 
         {/* Message stream — 30% */}
         <MessageStream log={log} phase={phase} />
+      </div>
       </div>
     </div>
   );
