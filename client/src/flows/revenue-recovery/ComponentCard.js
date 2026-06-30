@@ -12,7 +12,9 @@ const ComponentCard = ({ title, provider, iconType, status, tone, isActive, posi
   const theme = ICON_THEME[iconType] || ICON_THEME.payment;
 
   return (
-    <div style={{
+    <div
+      className={isActive ? 'canvas-node-active' : ''}
+      style={{
       position: 'absolute',
       ...position,
       background: '#ffffff',

@@ -547,7 +547,9 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
             flex: '0 0 70%',
             minWidth: 0,
             minHeight: 0,
-            background: 'radial-gradient(circle at 50% 40%, #fafbff 0%, #f3f4f7 74%)',
+            background: '#f6f7f9',
+            backgroundImage: 'radial-gradient(circle, #c8ccd4 1.5px, transparent 1.5px)',
+            backgroundSize: '24px 24px',
           }}
         >
           <div

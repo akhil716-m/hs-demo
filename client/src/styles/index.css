@@ -192,3 +192,54 @@ pre {
     stroke-dashoffset: -22;
   }
 }
+
+/* ──────────────────────────────────────────────────────
+   n8n-inspired canvas node animations
+   (conic-gradient spinning border on active nodes)
+   ────────────────────────────────────────────────────── */
+@property --node-spin-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes node-border-spin {
+  from { --node-spin-angle: 0deg; }
+  to   { --node-spin-angle: 360deg; }
+}
+
+/* Blue spinning border — Billing Engine, Payment Processor, Revenue Recovery */
+.canvas-node-active {
+  border: 1.5px solid transparent !important;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(
+      from var(--node-spin-angle),
+      #0066FF 0deg,
+      #0066FF 50deg,
+      rgba(0, 102, 255, 0.06) 95deg,
+      rgba(0, 102, 255, 0.06) 265deg,
+      #0066FF 310deg,
+      #0066FF 360deg
+    ) border-box !important;
+  animation: node-border-spin 2s linear infinite !important;
+  box-shadow: 0 2px 12px rgba(0, 102, 255, 0.1) !important;
+}
+
+/* Amber spinning border — External Retries panel */
+.canvas-node-active-amber {
+  border: 1.5px solid transparent !important;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(
+      from var(--node-spin-angle),
+      #F59E0B 0deg,
+      #F59E0B 50deg,
+      rgba(245, 158, 11, 0.06) 95deg,
+      rgba(245, 158, 11, 0.06) 265deg,
+      #F59E0B 310deg,
+      #F59E0B 360deg
+    ) border-box !important;
+  animation: node-border-spin 2s linear infinite !important;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.1) !important;
+}

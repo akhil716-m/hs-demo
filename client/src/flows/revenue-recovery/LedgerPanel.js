@@ -39,7 +39,9 @@ const LedgerPanel = ({
   const badge = declineType ? DECLINE_BADGE[declineType] : null;
 
   return (
-    <div style={{
+    <div
+      className={(!muted && isActive) ? 'canvas-node-active' : ''}
+      style={{
       position: 'absolute', ...position,
       background: muted ? '#fafafa' : '#ffffff',
       border: `1px solid ${muted ? '#e5e7eb' : isActive ? '#bfdbfe' : '#e5e7eb'}`,

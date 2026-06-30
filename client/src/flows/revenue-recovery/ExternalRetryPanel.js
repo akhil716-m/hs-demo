@@ -29,7 +29,9 @@ const ExternalRetryPanel = ({ items, isActive, escalated, position }) => {
   const count = items.length;
 
   return (
-    <div style={{
+    <div
+      className={isActive ? 'canvas-node-active-amber' : ''}
+      style={{
       position: 'absolute', ...position,
       background: '#ffffff',
       border: `1px solid ${isActive ? '#fde68a' : '#e5e7eb'}`,

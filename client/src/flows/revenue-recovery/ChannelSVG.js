@@ -18,11 +18,11 @@ const ChannelSVG = forwardRef(({ pathRefs, mutedChannels = [] }, _ref) => {
             key={`base-${id}`}
             d={d}
             fill="none"
-            stroke={isMuted ? '#d1d5db' : '#e3e6ec'}
-            strokeWidth={isMuted ? 3 : 6}
-            strokeLinecap="round"
-            strokeDasharray={isMuted ? '6 9' : undefined}
-            style={{ opacity: isMuted ? 0.5 : 1, transition: 'all 0.6s ease' }}
+            stroke={isMuted ? '#dde1e7' : '#d0d4dc'}
+            strokeWidth={2}
+            strokeLinecap="square"
+            strokeDasharray={isMuted ? '5 8' : undefined}
+            style={{ opacity: isMuted ? 0.45 : 1, transition: 'all 0.6s ease' }}
           />
         );
       })}
@@ -35,18 +35,18 @@ const ChannelSVG = forwardRef(({ pathRefs, mutedChannels = [] }, _ref) => {
           d={d}
           fill="none"
           stroke="none"
-          strokeWidth={2.5}
-          strokeLinecap="round"
+          strokeWidth={2}
+          strokeLinecap="square"
           style={{ opacity: 0 }}
         />
       ))}
 
       {/* Ports */}
-      <g fill="#cfd4dd">
-        {PORTS.map((p, i) => <circle key={`po-${i}`} cx={p.cx} cy={p.cy} r={5} />)}
+      <g fill="#d0d4dc">
+        {PORTS.map((p, i) => <circle key={`po-${i}`} cx={p.cx} cy={p.cy} r={4} />)}
       </g>
-      <g fill="#fff">
-        {PORTS.map((p, i) => <circle key={`pi-${i}`} cx={p.cx} cy={p.cy} r={2.2} />)}
+      <g fill="#f6f7f9">
+        {PORTS.map((p, i) => <circle key={`pi-${i}`} cx={p.cx} cy={p.cy} r={2} />)}
       </g>
     </svg>
   );
