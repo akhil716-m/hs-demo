@@ -101,7 +101,8 @@ const App = () => {
   useEffect(() => {
     // Skip HyperLoader for flows that don't depend on window.Hyper
     const flowId = new URLSearchParams(window.location.search).get('flow');
-    if (flowId === 'embedded_components') {
+    const sdkIndependentFlows = ['embedded_components', 'revenue_recovery_integrations', 'revenue_recovery_simulator'];
+    if (sdkIndependentFlows.includes(flowId)) {
       setIsLoading(false);
       return;
     }
@@ -214,8 +215,8 @@ const App = () => {
 
   return (
     <Layout onFlowSelect={handleFlowSelect} currentFlow={currentFlow}>
-      {currentFlow?.id === 'readme' || currentFlow?.id === 'organization_manager' || currentFlow?.id === 'decision_engine' || currentFlow?.id === 'sdk_customization' || currentFlow?.id === 'embedded_components' ? (
-        <div className="w-full">
+      {currentFlow?.id === 'readme' || currentFlow?.id === 'organization_manager' || currentFlow?.id === 'decision_engine' || currentFlow?.id === 'sdk_customization' || currentFlow?.id === 'embedded_components' || currentFlow?.id === 'revenue_recovery_integrations' ? (
+        <div className={`w-full ${currentFlow?.id === 'revenue_recovery_integrations' ? 'max-w-[1456px] mx-auto px-2 sm:px-0 flex-1 flex flex-col min-h-0' : ''}`}>
           {currentFlow.id === 'readme' ? (
             <Readme key={currentFlow.id} />
           ) : currentFlow.id === 'organization_manager' ? (
@@ -224,6 +225,8 @@ const App = () => {
             <DecisionEnginePlayground key={currentFlow.id} />
           ) : currentFlow.id === 'embedded_components' ? (
             <EmbeddedComponents key={currentFlow.id} />
+          ) : currentFlow.id === 'revenue_recovery_integrations' ? (
+            <RevenueRecoveryIntegrations key={currentFlow.id} />
           ) : (
             <SDKCustomization key={currentFlow.id} hyper={hyper} />
           )}
