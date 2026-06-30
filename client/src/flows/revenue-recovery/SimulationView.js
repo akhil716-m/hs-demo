@@ -28,6 +28,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [escalated, setEscalated] = useState(false);
   const [declineType, setDeclineType] = useState(null);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const [accountUpdated, setAccountUpdated] = useState(false);
+  const [expiredRevealed, setExpiredRevealed] = useState(false);
 
   const cardRef = useRef(null);
   const headerRef = useRef(null);
@@ -197,6 +199,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setEscalated(false);
     setDeclineType(null);
     setActiveCardIndex(0);
+    setAccountUpdated(false);
+    setExpiredRevealed(false);
     setBanner('Flow in progress\u2026');
 
     if ((await tick(300)) === 'cancelled') return;
@@ -258,9 +262,11 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     // 4 — Revenue Recovery internal retries (scenario-aware)
     const isHard = scenario === 'hard_decline';
     const isCardSwitch = scenario === 'card_switching';
+    const isAcctUpdate = scenario === 'account_update';
     // card_switching: 2 fails on card 1, switch, 1 success on card 2
+    // account_update: 1 fail (card expired), account updater runs, 1 success on new card
     // hard: 1 fail, stop
-    // soft/others: 1 fail, 1 success
+    // soft: 1 fail, 1 success
     const INT_TOTAL = isCardSwitch ? 3 : isHard ? 1 : 2;
 
     for (let i = 1; i <= INT_TOTAL; i++) {
@@ -288,6 +294,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
       if ((await tick(650)) === 'cancelled') return;
 
       // card switching: retries 1 & 2 fail, retry 3 succeeds (after card switch)
+      // account update: retry 1 fails (expired), retry 2 succeeds (new card)
       const succeeded = isCardSwitch ? i === 3 : (!isHard && i === INT_TOTAL);
 
       if (!succeeded) {
@@ -302,16 +309,28 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
 
         // After first internal attempt → classify decline type
         if (i === 1) {
-          const dtype = isHard ? 'hard' : 'soft';
+          const dtype = isHard ? 'hard' : isAcctUpdate ? 'expired' : 'soft';
           setDeclineType(dtype);
-          addLog('Recovery \u00B7 analysis', `Classified as ${isHard ? 'Hard' : 'Soft'} Decline`, 'classified', isHard ? 'failed' : 'scheduled');
+          addLog('Recovery \u00B7 analysis', `Classified as ${isHard ? 'Hard Decline' : isAcctUpdate ? 'Card Expired' : 'Soft Decline'}`, 'classified', isHard ? 'failed' : 'scheduled');
           if ((await tick(400)) === 'cancelled') return;
+
           if (isHard) {
             setInvoiceTone('failed');
             setInvoiceStatus('Unrecoverable');
             setPhase('done');
             setBanner('\u26A0 Hard decline \u00B7 invoice cannot be recovered automatically.');
             return;
+          }
+
+          // Account Update: run Juspay account updater to find new card
+          if (isAcctUpdate) {
+            setExpiredRevealed(true);
+            addLog('Recovery \u00B7 account updater', 'Searching for updated card details\u2026', 'scheduled', 'scheduled');
+            if ((await tick(800)) === 'cancelled') return;
+            setAccountUpdated(true);
+            addLog('Recovery \u00B7 account updater', 'Found new card \u2022\u2022\u2022\u2022 7890 (Visa) \u00B7 Exp 03/28', 'received', 'success');
+            setBillStatus('New card found \u00B7 retrying\u2026');
+            if ((await tick(500)) === 'cancelled') return;
           }
         }
 
@@ -500,17 +519,32 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
               tone={billTone}
               isActive={active === 'bill'}
               position={{ left: 50, top: 44, width: 275 }}
-              invoiceDetails={{
-                id: INVOICE_ID,
-                amount: INVOICE_AMOUNT,
-                cards: scenario === 'card_switching'
-                  ? [
-                      { network: 'VISA', last4: '4242', expiry: '12/26', account: 'cus_Np8x42', email: 'john.doe@acme.io' },
-                      { network: 'MC',   last4: '8888', expiry: '09/27' },
-                    ]
-                  : [{ network: 'VISA', last4: '4242', expiry: '12/26', account: 'cus_Np8x42', email: 'john.doe@acme.io' }],
-                activeCard: activeCardIndex,
-              }}
+              invoiceDetails={(() => {
+                const base = { id: INVOICE_ID, amount: INVOICE_AMOUNT, account: 'cus_Np8x42', email: 'john.doe@acme.io' };
+                if (scenario === 'card_switching') return {
+                  ...base,
+                  cards: [
+                    { network: 'VISA', last4: '4242', expiry: '12/26' },
+                    { network: 'MC',   last4: '8888', expiry: '09/27' },
+                  ],
+                  activeCard: activeCardIndex,
+                };
+                if (scenario === 'account_update') return {
+                  ...base,
+                  cards: accountUpdated
+                    ? [
+                        { network: 'VISA', last4: '4242', expiry: '06/23', expired: true, expiredRevealed },
+                        { network: 'VISA', last4: '7890', expiry: '03/28' },
+                      ]
+                    : [{ network: 'VISA', last4: '4242', expiry: '06/23', expired: true, expiredRevealed }],
+                  activeCard: accountUpdated ? 1 : 0,
+                };
+                return {
+                  ...base,
+                  cards: [{ network: 'VISA', last4: '4242', expiry: '12/26' }],
+                  activeCard: 0,
+                };
+              })()}
             />
 
             {/* Processor card */}

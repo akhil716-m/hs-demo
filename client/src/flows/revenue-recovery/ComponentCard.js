@@ -63,14 +63,16 @@ const ComponentCard = ({ title, provider, iconType, status, tone, isActive, posi
                   <span style={{ fontSize: '6px', fontWeight: 900, color: '#fff', letterSpacing: '0.3px' }}>{card.network}</span>
                 </div>
                 <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1a1f36' }}>•••• {card.last4}</span>
-                <span style={{ fontSize: '10px', color: '#9099a8' }}>Exp {card.expiry}</span>
+                {(!card.expired || card.expiredRevealed) && (
+                  <span style={{ fontSize: '10px', color: '#9099a8' }}>Exp {card.expiry}</span>
+                )}
                 <span style={{
                   marginLeft: 'auto', fontSize: '9px', fontWeight: 700, padding: '1px 6px',
                   borderRadius: 4, letterSpacing: '0.04em',
-                  background: isActive ? '#0066FF' : '#e5e7eb',
-                  color: isActive ? '#fff' : '#9099a8',
+                  background: (card.expired && card.expiredRevealed) ? '#FEE2E2' : isActive ? '#0066FF' : '#e5e7eb',
+                  color: (card.expired && card.expiredRevealed) ? '#B91C1C' : isActive ? '#fff' : '#9099a8',
                 }}>
-                  {isActive ? 'ACTIVE' : 'BACKUP'}
+                  {(card.expired && card.expiredRevealed) ? 'EXPIRED' : isActive ? 'ACTIVE' : 'BACKUP'}
                 </span>
               </div>
             );

@@ -78,12 +78,12 @@ const LedgerPanel = ({
         <div style={{ marginTop: 8 }}>
           <span style={{
             fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: 5,
-            background: declineType === 'hard' ? '#FEE2E2' : '#FEF3C7',
-            color: declineType === 'hard' ? '#B91C1C' : '#B45309',
+            background: declineType === 'hard' ? '#FEE2E2' : declineType === 'expired' ? '#FFF7ED' : '#FEF3C7',
+            color: declineType === 'hard' ? '#B91C1C' : declineType === 'expired' ? '#C2410C' : '#B45309',
             letterSpacing: '0.04em', textTransform: 'uppercase',
-            border: `1px solid ${declineType === 'hard' ? '#FECACA' : '#FDE68A'}`,
+            border: `1px solid ${declineType === 'hard' ? '#FECACA' : declineType === 'expired' ? '#FED7AA' : '#FDE68A'}`,
           }}>
-            {declineType === 'hard' ? '⛔ Hard Decline' : '⚠ Soft Decline'}
+            {declineType === 'hard' ? '⛔ Hard Decline' : declineType === 'expired' ? '💳 Card Expired' : '⚠ Soft Decline'}
           </span>
         </div>
       )}
