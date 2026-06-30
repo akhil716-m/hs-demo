@@ -216,7 +216,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     // 1 — Billing Engine generates invoice
     setActive('bill');
     setBillTone('info');
-    setBillStatus(`Invoice ${INVOICE_ID} raised`);
+    setBillStatus('Invoice raised');
     setInvoiceTone('info');
     setInvoiceStatus('Open');
     addLog('Billing Engine', `invoice ${INVOICE_ID} generated \u00B7 ${INVOICE_AMOUNT}`, 'created', 'listen');
@@ -255,7 +255,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
 
     // 3 — External retries exhausted → hand off to Revenue Recovery
     setBillTone('info');
-    setBillStatus(`${EXT_TOTAL} retries failed \u00B7 escalating\u2026`);
+    setBillStatus('Escalating\u2026');
     setEscalated(true);
     setCprMuted(false);
     if ((await tick(300)) === 'cancelled') return;
@@ -393,7 +393,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     addLog('Recovery \u2192 Billing', 'PATCH invoice \u2192 paid (API)', 'sent', 'success');
     setActive(null);
     setBillTone('success');
-    setBillStatus(`${INVOICE_ID} \u00B7 paid \u2713`);
+    setBillStatus('Paid \u2713');
     setInvoiceTone('recovered');
     setInvoiceStatus('Recovered');
     setPhase('done');
