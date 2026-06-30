@@ -30,6 +30,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [accountUpdated, setAccountUpdated] = useState(false);
   const [expiredRevealed, setExpiredRevealed] = useState(false);
+  const [retryHardDeclines, setRetryHardDeclines] = useState(false);
+  const retryHardDeclinesRef = useRef(false);
 
   const cardRef = useRef(null);
   const headerRef = useRef(null);
@@ -201,6 +203,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setActiveCardIndex(0);
     setAccountUpdated(false);
     setExpiredRevealed(false);
+    retryHardDeclinesRef.current = retryHardDeclines;
     setBanner('Flow in progress\u2026');
 
     if ((await tick(300)) === 'cancelled') return;
@@ -263,11 +266,12 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     const isHard = scenario === 'hard_decline';
     const isCardSwitch = scenario === 'card_switching';
     const isAcctUpdate = scenario === 'account_update';
+    const hardBudgetOn = retryHardDeclinesRef.current;
     // card_switching: 2 fails on card 1, switch, 1 success on card 2
     // account_update: 1 fail (card expired), account updater runs, 1 success on new card
-    // hard: 1 fail, stop
+    // hard + budget off: 1 fail → stop; hard + budget on: 1 fail → classify → 2 more retries → succeed
     // soft: 1 fail, 1 success
-    const INT_TOTAL = isCardSwitch ? 3 : isHard ? 1 : 2;
+    const INT_TOTAL = isCardSwitch ? 3 : (isHard ? (hardBudgetOn ? 3 : 1) : 2);
 
     for (let i = 1; i <= INT_TOTAL; i++) {
       const date = futureDate(i * 2);
@@ -295,7 +299,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
 
       // card switching: retries 1 & 2 fail, retry 3 succeeds (after card switch)
       // account update: retry 1 fails (expired), retry 2 succeeds (new card)
-      const succeeded = isCardSwitch ? i === 3 : (!isHard && i === INT_TOTAL);
+      // hard + budget on: retries 1 & 2 fail, retry 3 succeeds
+      const succeeded = isCardSwitch ? i === 3 : (isHard ? (hardBudgetOn && i === 3) : i === INT_TOTAL);
 
       if (!succeeded) {
         setProcTone('failed');
@@ -312,14 +317,19 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
           const dtype = isHard ? 'hard' : isAcctUpdate ? 'expired' : 'soft';
           setDeclineType(dtype);
           addLog('Recovery \u00B7 analysis', `Classified as ${isHard ? 'Hard Decline' : isAcctUpdate ? 'Card Expired' : 'Soft Decline'}`, 'classified', isHard ? 'failed' : 'scheduled');
-          if ((await tick(400)) === 'cancelled') return;
+          if ((await tick(500)) === 'cancelled') return;
 
           if (isHard) {
-            setInvoiceTone('failed');
-            setInvoiceStatus('Unrecoverable');
-            setPhase('done');
-            setBanner('\u26A0 Hard decline \u00B7 invoice cannot be recovered automatically.');
-            return;
+            if (!hardBudgetOn) {
+              addLog('Recovery \u00B7 safeguard', '\u26D4 Hard decline \u00B7 retry paused \u00B7 enable retry budget to continue', 'halted', 'failed');
+              setInvoiceTone('failed');
+              setInvoiceStatus('Paused');
+              setPhase('done');
+              setBanner('\u26D4 Hard decline detected \u00B7 retry budget is OFF \u00B7 enable \u201CRetry Hard Declines\u201D to continue.');
+              return;
+            }
+            addLog('Recovery \u00B7 safeguard', '\u26A0 Hard decline \u00B7 retry budget enabled \u00B7 card network penalty risk acknowledged', 'classified', 'scheduled');
+            if ((await tick(600)) === 'cancelled') return;
           }
 
           // Account Update: run Juspay account updater to find new card
@@ -343,7 +353,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
           if ((await tick(600)) === 'cancelled') return;
         }
       } else {
-        const cardLabel = isCardSwitch ? 'Mastercard \u2022\u2022\u2022\u2022 8888' : 'primary card';
+        const cardLabel = isCardSwitch ? 'Mastercard \u2022\u2022\u2022\u2022 8888' : isHard ? 'hard decline resolved' : 'primary card';
         setProcTone('success');
         setProcStatus('Payment succeeded \u2713');
         await flyChip('cPR', false, '#10B981', 'succeeded');
@@ -366,7 +376,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setInvoiceStatus('Recovered');
     setPhase('done');
     setBanner(`\u2713 Recovered ${INVOICE_AMOUNT} \u00B7 ${EXT_TOTAL} external + ${INT_TOTAL} internal retries.`);
-  }, [flyChip, addLog, pushExternal, pushInternal, patchInternal, scenario]);
+  }, [flyChip, addLog, pushExternal, pushInternal, patchInternal, scenario, retryHardDeclines]);
 
   const onStart = () => {
     if (phase !== 'running') run();
@@ -450,7 +460,43 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
               );
             })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {/* Retry Hard Declines toggle — visible only for hard_decline scenario */}
+            {scenario === 'hard_decline' && (
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '5px 10px', borderRadius: 8,
+                  background: retryHardDeclines ? '#fff8f0' : '#fef2f2',
+                  border: `1px solid ${retryHardDeclines ? '#FDBA74' : '#FECACA'}`,
+                }}
+              >
+                <span style={{ fontSize: '11px', fontWeight: 600, color: retryHardDeclines ? '#C2410C' : '#B91C1C', whiteSpace: 'nowrap' }}>
+                  Retry Hard Declines
+                </span>
+                <div
+                  onClick={() => {
+                    if (phase === 'running') return;
+                    setRetryHardDeclines(v => {
+                      retryHardDeclinesRef.current = !v;
+                      return !v;
+                    });
+                  }}
+                  style={{
+                    width: 30, height: 16, borderRadius: 8, cursor: phase === 'running' ? 'default' : 'pointer',
+                    background: retryHardDeclines ? '#F97316' : '#d1d5db',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 2,
+                    left: retryHardDeclines ? 16 : 2,
+                    width: 12, height: 12, borderRadius: 6, background: '#fff',
+                    transition: 'left 0.18s', boxShadow: '0 1px 3px rgba(0,0,0,.25)',
+                  }} />
+                </div>
+              </div>
+            )}
             {[{ label: 'Payment', name: paymentName }, { label: 'Billing', name: billingName }].map(({ label, name }) => (
               <span key={label} style={{ background: '#f1f3f7', border: '1px solid #e5e7eb', borderRadius: '999px', padding: '4px 11px', fontSize: '11.5px', color: '#5e6573' }}>
                 {label}: <b style={{ color: '#1a1f36' }}>{name}</b>{' '}
