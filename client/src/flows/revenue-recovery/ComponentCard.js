@@ -36,13 +36,13 @@ const ComponentCard = ({ title, provider, iconType, status, tone, isActive, posi
           <Icon size={15} color={theme.color} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
             {title}
           </div>
-          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: 1 }}>{provider}</div>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          <StatusPill tone={tone} text={status} size="small" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, gap: 6 }}>
+            <span style={{ fontSize: '11px', color: '#6b7280' }}>{provider}</span>
+            <StatusPill tone={tone} text={status} size="small" />
+          </div>
         </div>
       </div>
 
