@@ -26,7 +26,7 @@ const RetryRow = ({ item }) => {
 
 const LedgerPanel = ({
   invoiceId, invoiceAmount, invoiceStatus, invoiceTone,
-  internal, isActive, muted, position,
+  internal, isActive, muted, declineType, position,
 }) => {
   const count = internal.length;
   const borderColor = muted ? '#d1d5db' : isActive ? '#0066FF' : '#0066FF';
@@ -64,7 +64,7 @@ const LedgerPanel = ({
         </div>
         {!muted && (
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '10.5px', color: '#9099a8' }}>Invoice {invoiceId}</div>
+            <div style={{ fontSize: '10px', color: '#9099a8', letterSpacing: '0.03em' }}>Invoice {invoiceId}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end', marginTop: 2 }}>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#1a1f36' }}>{invoiceAmount}</span>
               <StatusPill tone={invoiceTone} text={invoiceStatus} />
@@ -72,6 +72,21 @@ const LedgerPanel = ({
           </div>
         )}
       </div>
+
+      {/* Decline classification badge — appears after first internal attempt */}
+      {!muted && declineType && (
+        <div style={{ marginTop: 8 }}>
+          <span style={{
+            fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: 5,
+            background: declineType === 'hard' ? '#FEE2E2' : '#FEF3C7',
+            color: declineType === 'hard' ? '#B91C1C' : '#B45309',
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            border: `1px solid ${declineType === 'hard' ? '#FECACA' : '#FDE68A'}`,
+          }}>
+            {declineType === 'hard' ? '⛔ Hard Decline' : '⚠ Soft Decline'}
+          </span>
+        </div>
+      )}
 
       {/* Retry rows */}
       {!muted && (

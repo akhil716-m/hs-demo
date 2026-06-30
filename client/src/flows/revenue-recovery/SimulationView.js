@@ -26,6 +26,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
   const [scenario, setScenario] = useState('soft_decline');
   const [cprMuted, setCprMuted] = useState(true);
   const [escalated, setEscalated] = useState(false);
+  const [declineType, setDeclineType] = useState(null);
 
   const cardRef = useRef(null);
   const headerRef = useRef(null);
@@ -193,6 +194,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setInvoiceTone('idle');
     setCprMuted(true);
     setEscalated(false);
+    setDeclineType(null);
     setBanner('Flow in progress\u2026');
 
     if ((await tick(300)) === 'cancelled') return;
@@ -251,8 +253,10 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setActive('rec');
     if ((await tick(400)) === 'cancelled') return;
 
-    // 4 — Revenue Recovery internal retries (retry #1 fails, retry #2 succeeds)
-    const INT_TOTAL = 2;
+    // 4 — Revenue Recovery: first attempt reveals decline type
+    const isHard = scenario === 'hard_decline';
+    const INT_TOTAL = isHard ? 1 : 2;
+
     for (let i = 1; i <= INT_TOTAL; i++) {
       const date = futureDate(i * 2);
       const idx = i - 1;
@@ -277,17 +281,33 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
       setActive('proc');
       if ((await tick(650)) === 'cancelled') return;
 
-      const succeeded = i === INT_TOTAL;
+      const succeeded = !isHard && i === INT_TOTAL;
 
       if (!succeeded) {
         setProcTone('failed');
-        setProcStatus(`Declined \u00B7 recovery attempt #${i}`);
+        setProcStatus(`Declined \u00B7 attempt #${i}`);
         await flyChip('cPR', false, '#EF4444', 'failed');
         if (cancelRef.current) return;
         addLog('Processor \u2192 Recovery', 'payment.failed webhook', 'failed', 'failed');
         patchInternal(idx, { status: 'Failed', sub: `Attempted ${date}`, tone: 'failed' });
         setActive('rec');
         if ((await tick(400)) === 'cancelled') return;
+
+        // After first internal attempt → classify decline type
+        if (i === 1) {
+          const dtype = isHard ? 'hard' : 'soft';
+          setDeclineType(dtype);
+          addLog('Recovery \u00B7 analysis', `Classified as ${isHard ? 'Hard' : 'Soft'} Decline`, 'classified', isHard ? 'failed' : 'scheduled');
+          if ((await tick(400)) === 'cancelled') return;
+
+          if (isHard) {
+            setInvoiceTone('failed');
+            setInvoiceStatus('Unrecoverable');
+            setPhase('done');
+            setBanner('\u26A0 Hard decline \u00B7 invoice cannot be recovered automatically.');
+            return;
+          }
+        }
       } else {
         setProcTone('success');
         setProcStatus('Payment succeeded \u2713');
@@ -311,7 +331,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
     setInvoiceStatus('Recovered');
     setPhase('done');
     setBanner(`\u2713 Recovered ${INVOICE_AMOUNT} \u00B7 ${EXT_TOTAL} external + ${INT_TOTAL} internal retries.`);
-  }, [flyChip, addLog, pushExternal, pushInternal, patchInternal]);
+  }, [flyChip, addLog, pushExternal, pushInternal, patchInternal, scenario]);
 
   const onStart = () => {
     if (phase !== 'running') run();
@@ -463,7 +483,8 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
               status={billStatus}
               tone={billTone}
               isActive={active === 'bill'}
-              position={{ left: 50, top: 44, width: 240 }}
+              position={{ left: 50, top: 44, width: 275 }}
+              invoiceDetails={{ id: INVOICE_ID, amount: INVOICE_AMOUNT }}
             />
 
             {/* Processor card */}
@@ -494,6 +515,7 @@ const SimulationView = ({ paymentConfig, billingConfig }) => {
               internal={internal}
               isActive={active === 'rec'}
               muted={cprMuted}
+              declineType={declineType}
               position={{ left: 445, top: 290, width: 580 }}
             />
           </div>
