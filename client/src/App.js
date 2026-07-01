@@ -94,6 +94,9 @@ const App = () => {
       if (flow) {
         setCurrentFlow(flow);
       }
+    } else if (!process.env.REACT_APP_API_URL) {
+      // Static / demo-only deployment: default to Revenue Recovery
+      setCurrentFlow({ id: 'revenue_recovery_integrations', name: 'Revenue Recovery', description: 'Configure and manage integrations for revenue recovery' });
     }
   }, [setCurrentFlow]);
 
@@ -103,6 +106,12 @@ const App = () => {
     const flowId = new URLSearchParams(window.location.search).get('flow');
     const sdkIndependentFlows = ['embedded_components', 'revenue_recovery_integrations', 'revenue_recovery_simulator'];
     if (sdkIndependentFlows.includes(flowId)) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Skip HyperLoader if no backend is configured (static / demo-only deployment)
+    if (!process.env.REACT_APP_API_URL) {
       setIsLoading(false);
       return;
     }
