@@ -39,7 +39,7 @@ const LandingPage = ({ onGetStarted }) => {
       <div style={{
         position: 'relative',
         width: '100%',
-        maxWidth: 560,
+        maxWidth: 640,
         margin: '0 auto',
         height: visibleH || 'auto',
         overflow: 'hidden',
