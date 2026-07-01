@@ -313,7 +313,7 @@ const Stepper = ({ stepIndex, onGoToStep }) => {
                   {isCompleted ? <Check size={14} /> : <Icon size={14} />}
                 </span>
               </div>
-              <div className="flex items-center flex-1" style={{ paddingLeft: '14px', minHeight: 78 }}>
+              <div className="flex items-center flex-1" style={{ paddingLeft: '14px', minHeight: 52 }}>
                 <span
                   style={{
                     fontSize: '13.5px',
@@ -383,7 +383,7 @@ const Stepper = ({ stepIndex, onGoToStep }) => {
                 />
               )}
             </div>
-            <div className="flex items-center flex-1" style={{ paddingLeft: '14px', minHeight: 42 }}>
+            <div className="flex items-center flex-1" style={{ paddingLeft: '14px', minHeight: 32 }}>
               <span
                 style={{
                   fontSize: '11.5px',
@@ -802,7 +802,7 @@ const OnboardingWizard = ({ onComplete, onBack }) => {
   return (
     <div className="flex flex-col w-full" style={{ flex: 1, minHeight: 0 }}>
       {/* Top bar */}
-      <div className="flex items-center" style={{ gap: '12px', marginBottom: '24px', paddingTop: '24px' }}>
+      <div className="flex items-center" style={{ gap: '12px', marginBottom: '20px', paddingTop: '28px' }}>
         <button
           type="button"
           onClick={stepIndex === 0 ? onBack : back}
