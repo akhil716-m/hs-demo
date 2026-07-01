@@ -28,7 +28,7 @@ const Integrations = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-0" style={{ flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col min-h-0" style={{ flex: 1, minHeight: 0, padding: '24px 32px' }}>
       <div className="flex justify-start" style={{ flexShrink: 0, marginBottom: '16px' }}>
         <button
           onClick={() => setViewMode('setup')}
