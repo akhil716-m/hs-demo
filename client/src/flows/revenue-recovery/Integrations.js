@@ -16,7 +16,11 @@ const Integrations = () => {
   };
 
   if (viewMode === 'landing') {
-    return <LandingPage onGetStarted={() => setViewMode('setup')} />;
+    return (
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <LandingPage onGetStarted={() => setViewMode('setup')} />
+      </div>
+    );
   }
 
   if (viewMode === 'setup') {
