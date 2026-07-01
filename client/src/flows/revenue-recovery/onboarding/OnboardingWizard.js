@@ -452,7 +452,7 @@ const SelectLabel = ({ children }) => (
 // ---------------------------------------------------------------------------
 // Wizard
 // ---------------------------------------------------------------------------
-const OnboardingWizard = ({ onComplete }) => {
+const OnboardingWizard = ({ onComplete, onBack }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [focused, setFocused] = useState(null);
 
@@ -805,8 +805,7 @@ const OnboardingWizard = ({ onComplete }) => {
       <div className="flex items-center" style={{ gap: '12px', marginBottom: '24px', paddingTop: '24px' }}>
         <button
           type="button"
-          onClick={back}
-          disabled={stepIndex === 0}
+          onClick={stepIndex === 0 ? onBack : back}
           className="flex items-center justify-center"
           style={{
             width: 30,
@@ -814,8 +813,8 @@ const OnboardingWizard = ({ onComplete }) => {
             borderRadius: '8px',
             border: 'none',
             background: 'none',
-            color: stepIndex === 0 ? GRAY_LIGHT : TEXT,
-            cursor: stepIndex === 0 ? 'default' : 'pointer',
+            color: TEXT,
+            cursor: 'pointer',
           }}
         >
           <ArrowLeft size={18} />

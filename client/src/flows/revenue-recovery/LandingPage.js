@@ -32,9 +32,9 @@ const LandingPage = ({ onGetStarted }) => {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-      width: '100%', paddingTop: 16,
-      background: '#ffffff', minHeight: '100%',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      width: '100%', height: '100%', minHeight: '100vh',
+      background: '#ffffff',
     }}>
       <div style={{
         position: 'relative',

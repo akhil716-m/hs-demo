@@ -20,7 +20,7 @@ const Integrations = () => {
   }
 
   if (viewMode === 'setup') {
-    return <OnboardingWizard onComplete={handleComplete} />;
+    return <OnboardingWizard onComplete={handleComplete} onBack={() => setViewMode('landing')} />;
   }
 
   return (
