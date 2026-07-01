@@ -800,7 +800,7 @@ const OnboardingWizard = ({ onComplete, onBack }) => {
   };
 
   return (
-    <div className="flex flex-col w-full" style={{ flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col w-full" style={{ flex: 1, minHeight: 0, paddingLeft: '32px', paddingRight: '32px' }}>
       {/* Top bar */}
       <div className="flex items-center" style={{ gap: '12px', marginBottom: '20px', paddingTop: '28px' }}>
         <button
